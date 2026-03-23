@@ -1,4 +1,4 @@
-export const HTTP_STATUS_CODES = {
+export const HTTPSTATUS = {
     OK: 200,
     CREATED: 201,
     BAD_REQUEST: 400,
@@ -8,4 +8,5 @@ export const HTTP_STATUS_CODES = {
     INTERNAL_SERVER_ERROR: 500,
 } as const;
 
-export type HttpStatusCode = (typeof HTTP_STATUS_CODES)[keyof typeof HTTP_STATUS_CODES];
+export type HttpStatusCodeType = (typeof HTTPSTATUS)[keyof typeof HTTPSTATUS];
+
