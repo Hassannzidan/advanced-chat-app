@@ -5,6 +5,8 @@ import cors from "cors";
 import { envConfig } from "./config/env.config";
 import { HTTPSTATUS } from "./config/http.config";
 import { asyncHandler } from "./middlewares/asyncHandler.middleware";
+import { errorHandler } from "./middlewares/errorHandler.middleware";
+import connectDatabase from "./config/database.config";
 
 const app = express();
 app.use(express.json());
@@ -23,6 +25,10 @@ app.get("/health",
     });
 }));
 
-app.listen(envConfig.PORT, () => {
+app.use(errorHandler)
+
+
+app.listen(envConfig.PORT, async () => {
+    await connectDatabase();
     console.log(`Server is running on port ${envConfig.PORT} in ${envConfig.NODE_ENV} mode`);
 });
