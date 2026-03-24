@@ -9,7 +9,7 @@ import { asyncHandler } from "./middlewares/asyncHandler.middleware";
 import { errorHandler } from "./middlewares/errorHandler.middleware";
 import connectDatabase from "./config/database.config";
 import "./config/passport.config";
-import router from "./routes";
+import routers from "./routes";
 
 const app = express();
 app.use(express.json());
@@ -29,7 +29,7 @@ app.get("/health",
     });
 }));
 
-app.use("/api", router);
+app.use("/api", routers);
 
 app.use(errorHandler)
 
