@@ -8,6 +8,7 @@ interface UserDocument extends Document {
     avatar?: string;
     createdAt: Date;
     updatedAt: Date;
+    comparePassword(password: string): Promise<boolean>;
 }
 
 const userSchema = new Schema<UserDocument>({
