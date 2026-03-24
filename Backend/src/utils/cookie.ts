@@ -4,7 +4,7 @@ import { envConfig } from "../config/env.config";
 
 type Cookie = {
     res: Response;
-    userId: string; // User ID
+    userId: string; 
 }
 
 export const setJwtAuthCookie = ({res, userId}: Cookie) => {
