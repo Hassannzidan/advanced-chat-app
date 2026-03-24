@@ -10,6 +10,8 @@ import { errorHandler } from "./middlewares/errorHandler.middleware";
 import connectDatabase from "./config/database.config";
 import "./config/passport.config";
 import routers from "./routes";
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.config";
 
 const app = express();
 app.use(express.json());
@@ -30,6 +32,11 @@ app.get("/health",
 }));
 
 app.use("/api", routers);
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get("/api-docs.json", (req: Request, res: Response) => {
+    res.setHeader("Content-Type", "application/json");
+    res.send(swaggerSpec);
+});
 
 app.use(errorHandler)
 
@@ -37,4 +44,6 @@ app.use(errorHandler)
 app.listen(envConfig.PORT, async () => {
     await connectDatabase();
     console.log(`Server is running on port ${envConfig.PORT} in ${envConfig.NODE_ENV} mode`);
+    console.log(`Swagger UI: http://localhost:${envConfig.PORT}/api-docs`);
+    console.log(`Swagger JSON: http://localhost:${envConfig.PORT}/api-docs.json`);
 });
