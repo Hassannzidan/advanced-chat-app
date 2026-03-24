@@ -14,7 +14,7 @@ export const errorHandler: ErrorRequestHandler = (
     if (err instanceof AppError) {
         return res.status(err.statusCode).json({
             message: err.message,
-            error: err.errorCode,
+            errorCode: err.errorCode,
             timestamp: new Date().toISOString(),
         });
     }

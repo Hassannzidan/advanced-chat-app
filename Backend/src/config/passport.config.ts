@@ -1,5 +1,6 @@
 import passport from "passport";
 import { Strategy as JwtStrategy, ExtractJwt } from "passport-jwt";
+import { NextFunction, Request, Response } from "express";
 import { UnauthorizedException } from "../utils/app-error";
 import { envConfig } from "./env.config";
 import { findByIdService } from "../services/user.service";
@@ -25,4 +26,12 @@ async ({userId}, done) => {
     }
 })
 );
-export const passportAuthenticateJwt = passport.authenticate("jwt", { session: false });
+export const passportAuthenticateJwt = (req: Request, res: Response, next: NextFunction) => {
+    passport.authenticate("jwt", { session: false }, (err: unknown, user: Express.User | false) => {
+        if (err) return next(err);
+        if (!user) return next(new UnauthorizedException("Unauthorized"));
+
+        req.user = user;
+        return next();
+    })(req, res, next);
+};
