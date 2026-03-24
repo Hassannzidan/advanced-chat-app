@@ -1,6 +1,6 @@
 import { getEnv } from "../utils/get-env";
 
-export const envConfig: Record<string, string> = {
+export const envConfig: Record<string, any> = {
     NODE_ENV: getEnv("NODE_ENV", "development"),
     PORT: getEnv("PORT", "3000"),
     MONGO_URI: getEnv("MONGO_URI"),
