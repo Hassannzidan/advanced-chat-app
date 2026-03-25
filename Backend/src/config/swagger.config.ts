@@ -67,7 +67,7 @@ export const swaggerSpec = {
                 properties: {
                     name: { type: "string", minLength: 1, example: "John Doe" },
                     email: { type: "string", format: "email", example: "john@example.com" },
-                    password: { type: "string", minLength: 8, example: "StrongPass123" },
+                    password: { type: "string", minLength: 8, maxLength: 32, example: "StrongPass123" },
                     avatar: { type: "string", example: "data:image/png;base64,iVBORw0KGgo..." },
                 },
             },
@@ -76,7 +76,7 @@ export const swaggerSpec = {
                 required: ["email", "password"],
                 properties: {
                     email: { type: "string", format: "email", example: "john@example.com" },
-                    password: { type: "string", minLength: 8, example: "StrongPass123" },
+                    password: { type: "string", minLength: 8, maxLength: 32, example: "StrongPass123" },
                 },
             },
             SuccessAuthResponse: {
@@ -103,34 +103,63 @@ export const swaggerSpec = {
                 },
             },
             CreateChatRequest: {
-                type: "object",
-                properties: {
-                    participantId: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
-                    isGroup: { type: "boolean", example: false },
-                    participants: {
-                        type: "array",
-                        items: { type: "string" },
-                        example: ["65dff5fd8d2bfc2212f50f58", "65dff5fd8d2bfc2212f50f59"],
+                description:
+                    "Create a direct chat (provide participantId) or a group chat (provide isGroup=true, participants, groupName).",
+                oneOf: [
+                    {
+                        type: "object",
+                        required: ["participantId"],
+                        properties: {
+                            participantId: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                        },
+                        additionalProperties: false,
                     },
-                    groupName: { type: "string", example: "Project Team" },
-                },
-                additionalProperties: false,
+                    {
+                        type: "object",
+                        required: ["isGroup", "participants", "groupName"],
+                        properties: {
+                            isGroup: { type: "boolean", enum: [true], example: true },
+                            participants: {
+                                type: "array",
+                                items: { type: "string" },
+                                minItems: 1,
+                                example: ["65dff5fd8d2bfc2212f50f58", "65dff5fd8d2bfc2212f50f59"],
+                            },
+                            groupName: { type: "string", minLength: 1, example: "Project Team" },
+                        },
+                        additionalProperties: false,
+                    },
+                ],
             },
             SendMessageRequest: {
-                type: "object",
-                required: ["chatId"],
-                properties: {
-                    chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
-                    content: { type: "string", nullable: true, example: "Hello!" },
-                    image: {
-                        type: "string",
-                        nullable: true,
-                        description: "Base64 or data URL image; uploaded to Cloudinary if provided.",
-                        example: "data:image/png;base64,iVBORw0KGgo...",
+                description: "Either content or image is required (validator enforces this).",
+                oneOf: [
+                    {
+                        type: "object",
+                        required: ["chatId", "content"],
+                        properties: {
+                            chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                            content: { type: "string", minLength: 1, example: "Hello!" },
+                            replyToId: { type: "string", nullable: true, example: "65dff5fd8d2bfc2212f50f99" },
+                        },
+                        additionalProperties: false,
                     },
-                    replyToId: { type: "string", nullable: true, example: "65dff5fd8d2bfc2212f50f99" },
-                },
-                additionalProperties: false,
+                    {
+                        type: "object",
+                        required: ["chatId", "image"],
+                        properties: {
+                            chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                            image: {
+                                type: "string",
+                                description: "Base64 or data URL image; uploaded to Cloudinary if provided.",
+                                example: "data:image/png;base64,iVBORw0KGgo...",
+                            },
+                            content: { type: "string", nullable: true, example: null },
+                            replyToId: { type: "string", nullable: true, example: "65dff5fd8d2bfc2212f50f99" },
+                        },
+                        additionalProperties: false,
+                    },
+                ],
             },
             Chat: {
                 type: "object",
@@ -233,11 +262,12 @@ export const swaggerSpec = {
             },
             ErrorResponse: {
                 type: "object",
+                required: ["message", "errorCode", "timestamp"],
                 properties: {
                     message: { type: "string", example: "Unauthorized" },
-                    error: { type: "string", nullable: true, example: "Internal Server Error" },
+                    error: { type: "string", nullable: true, example: "Extra error details (only on 500s)" },
                     errorCode: { type: "string", example: "ERR_UNAUTHORIZED" },
-                    timestamp: { type: "string", format: "date-time" },
+                    timestamp: { type: "string", format: "date-time", example: "2026-03-25T12:34:56.789Z" },
                 },
             },
         },
@@ -286,8 +316,16 @@ export const swaggerSpec = {
                             },
                         },
                     },
-                    "400": {
-                        description: "Validation error or bad request",
+                    "401": {
+                        description: "Unauthorized (e.g., user already exists)",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -318,16 +356,24 @@ export const swaggerSpec = {
                             },
                         },
                     },
-                    "400": {
-                        description: "Validation error or invalid credentials",
+                    "401": {
+                        description: "Unauthorized (invalid credentials)",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
                             },
                         },
                     },
-                    "401": {
-                        description: "Unauthorized",
+                    "404": {
+                        description: "Not found (email or password is incorrect)",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -350,6 +396,14 @@ export const swaggerSpec = {
                             },
                         },
                     },
+                    "500": {
+                        description: "Internal server error",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -369,6 +423,14 @@ export const swaggerSpec = {
                     },
                     "401": {
                         description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -416,6 +478,22 @@ export const swaggerSpec = {
                             },
                         },
                     },
+                    "404": {
+                        description: "Not found (e.g., participant user not found)",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -435,6 +513,14 @@ export const swaggerSpec = {
                     },
                     "401": {
                         description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
@@ -483,6 +569,14 @@ export const swaggerSpec = {
                             },
                         },
                     },
+                    "500": {
+                        description: "Internal server error",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -524,6 +618,14 @@ export const swaggerSpec = {
                             },
                         },
                     },
+                    "500": {
+                        description: "Internal server error",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
                 },
             },
         },
@@ -543,6 +645,14 @@ export const swaggerSpec = {
                     },
                     "401": {
                         description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "500": {
+                        description: "Internal server error",
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/ErrorResponse" },
