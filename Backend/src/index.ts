@@ -2,6 +2,7 @@ import cookieParser from "cookie-parser";
 import "dotenv/config";
 import express, { Request, Response } from "express";
 import cors from "cors";
+import http, { Server } from "http";
 import passport from "passport";
 import { envConfig } from "./config/env.config";
 import { HTTPSTATUS } from "./config/http.config";
@@ -12,8 +13,13 @@ import "./config/passport.config";
 import routers from "./routes";
 import swaggerUi from "swagger-ui-express";
 import { swaggerSpec } from "./config/swagger.config";
+import { initializeSocket } from "./lib/socket";
 
 const app = express();
+const server = http.createServer(app);
+
+//sockets
+initializeSocket(server);
 app.use(express.json({ limit: "10mb" }));
 app.use(cookieParser());
 app.use(express.urlencoded({ extended: true }));
@@ -41,7 +47,7 @@ app.get("/api-docs.json", (req: Request, res: Response) => {
 app.use(errorHandler)
 
 
-app.listen(envConfig.PORT, async () => {
+server.listen(envConfig.PORT, async () => {
     await connectDatabase();
     console.log(`Server is running on port ${envConfig.PORT} in ${envConfig.NODE_ENV} mode`);
     console.log(`Swagger UI: http://localhost:${envConfig.PORT}/api-docs`);
