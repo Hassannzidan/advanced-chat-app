@@ -1,4 +1,3 @@
-import { populate } from "dotenv";
 import ChatModel from "../modles/chat.model";
 import UserModel from "../modles/user.model";
 import { BadRequestException, NotFoundException } from "../utils/app-error";
