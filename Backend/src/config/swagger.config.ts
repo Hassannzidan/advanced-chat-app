@@ -8,7 +8,7 @@ export const swaggerSpec = {
     info: {
         title: "Advanced Chat App API",
         version: "1.0.0",
-        description: "API documentation for authentication and health routes.",
+        description: "API documentation for the Advanced Chat App backend.",
     },
     servers: [
         {
@@ -19,14 +19,17 @@ export const swaggerSpec = {
     tags: [
         { name: "Health", description: "Service health checks" },
         { name: "Auth", description: "Authentication endpoints" },
+        { name: "Chat", description: "Chat creation and retrieval" },
+        { name: "Message", description: "Send and retrieve messages" },
+        { name: "User", description: "User listing and lookup" },
     ],
     components: {
         securitySchemes: {
             cookieAuth: {
                 type: "apiKey",
                 in: "cookie",
-                name: "jwt",
-                description: "JWT auth cookie set after login/register.",
+                name: "accessToken",
+                description: "JWT auth cookie set after login/register (httpOnly).",
             },
         },
         schemas: {
@@ -36,23 +39,36 @@ export const swaggerSpec = {
                     _id: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
                     name: { type: "string", example: "John Doe" },
                     email: { type: "string", format: "email", example: "john@example.com" },
-                    profilePicture: {
+                    avatar: {
                         type: "string",
                         nullable: true,
                         example: "https://cdn.example.com/avatars/john.png",
                     },
-                    isVerified: { type: "boolean", example: true },
                     createdAt: { type: "string", format: "date-time" },
                     updatedAt: { type: "string", format: "date-time" },
+                },
+            },
+            UserPublic: {
+                type: "object",
+                properties: {
+                    _id: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                    name: { type: "string", example: "John Doe" },
+                    email: { type: "string", format: "email", example: "john@example.com" },
+                    avatar: {
+                        type: "string",
+                        nullable: true,
+                        example: "https://cdn.example.com/avatars/john.png",
+                    },
                 },
             },
             RegisterRequest: {
                 type: "object",
                 required: ["name", "email", "password"],
                 properties: {
-                    name: { type: "string", minLength: 2, example: "John Doe" },
+                    name: { type: "string", minLength: 1, example: "John Doe" },
                     email: { type: "string", format: "email", example: "john@example.com" },
-                    password: { type: "string", minLength: 6, example: "StrongPass123" },
+                    password: { type: "string", minLength: 8, example: "StrongPass123" },
+                    avatar: { type: "string", example: "data:image/png;base64,iVBORw0KGgo..." },
                 },
             },
             LoginRequest: {
@@ -60,7 +76,7 @@ export const swaggerSpec = {
                 required: ["email", "password"],
                 properties: {
                     email: { type: "string", format: "email", example: "john@example.com" },
-                    password: { type: "string", minLength: 6, example: "StrongPass123" },
+                    password: { type: "string", minLength: 8, example: "StrongPass123" },
                 },
             },
             SuccessAuthResponse: {
@@ -86,16 +102,142 @@ export const swaggerSpec = {
                     user: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
                 },
             },
+            CreateChatRequest: {
+                type: "object",
+                properties: {
+                    participantId: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                    isGroup: { type: "boolean", example: false },
+                    participants: {
+                        type: "array",
+                        items: { type: "string" },
+                        example: ["65dff5fd8d2bfc2212f50f58", "65dff5fd8d2bfc2212f50f59"],
+                    },
+                    groupName: { type: "string", example: "Project Team" },
+                },
+                additionalProperties: false,
+            },
+            SendMessageRequest: {
+                type: "object",
+                required: ["chatId"],
+                properties: {
+                    chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                    content: { type: "string", nullable: true, example: "Hello!" },
+                    image: {
+                        type: "string",
+                        nullable: true,
+                        description: "Base64 or data URL image; uploaded to Cloudinary if provided.",
+                        example: "data:image/png;base64,iVBORw0KGgo...",
+                    },
+                    replyToId: { type: "string", nullable: true, example: "65dff5fd8d2bfc2212f50f99" },
+                },
+                additionalProperties: false,
+            },
+            Chat: {
+                type: "object",
+                properties: {
+                    _id: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                    participants: {
+                        type: "array",
+                        items: {
+                            oneOf: [
+                                { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                                { $ref: "#/components/schemas/UserPublic" },
+                            ],
+                        },
+                    },
+                    lastMessage: {
+                        oneOf: [
+                            { type: "string", nullable: true, example: "65dff5fd8d2bfc2212f50f99" },
+                            { $ref: "#/components/schemas/Message" },
+                        ],
+                        nullable: true,
+                    },
+                    isGroup: { type: "boolean", example: false },
+                    groupName: { type: "string", nullable: true, example: null },
+                    createdBy: { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                    createdAt: { type: "string", format: "date-time" },
+                    updatedAt: { type: "string", format: "date-time" },
+                },
+            },
+            Message: {
+                type: "object",
+                properties: {
+                    _id: { type: "string", example: "65dff5fd8d2bfc2212f50f99" },
+                    chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                    sender: {
+                        oneOf: [
+                            { type: "string", example: "65dff5fd8d2bfc2212f50f58" },
+                            { $ref: "#/components/schemas/UserPublic" },
+                        ],
+                    },
+                    content: { type: "string", nullable: true, example: "Hello!" },
+                    image: { type: "string", nullable: true, example: "https://res.cloudinary.com/.../image.png" },
+                    replyTo: {
+                        oneOf: [{ type: "string" }, { $ref: "#/components/schemas/Message" }],
+                        nullable: true,
+                    },
+                    createdAt: { type: "string", format: "date-time" },
+                    updatedAt: { type: "string", format: "date-time" },
+                },
+            },
+            CreateChatResponse: {
+                type: "object",
+                properties: {
+                    status: { type: "string", example: "success" },
+                    message: { type: "string", example: "Chat created or retrieved successfully" },
+                    chat: { $ref: "#/components/schemas/Chat" },
+                },
+            },
+            UsersChatsResponse: {
+                type: "object",
+                properties: {
+                    status: { type: "string", example: "success" },
+                    message: { type: "string", example: "Users chats fetched successfully" },
+                    chats: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/Chat" },
+                    },
+                },
+            },
+            SingleChatResponse: {
+                type: "object",
+                properties: {
+                    status: { type: "string", example: "success" },
+                    message: { type: "string", example: "Chat fetched successfully" },
+                    chat: { $ref: "#/components/schemas/Chat" },
+                    messages: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/Message" },
+                    },
+                },
+            },
+            SendMessageResponse: {
+                type: "object",
+                properties: {
+                    status: { type: "string", example: "success" },
+                    message: { type: "string", example: "Message sent successfully" },
+                    userMessage: { $ref: "#/components/schemas/Message" },
+                    chatId: { type: "string", example: "65dff5fd8d2bfc2212f50f70" },
+                },
+            },
+            UsersResponse: {
+                type: "object",
+                properties: {
+                    status: { type: "string", example: "success" },
+                    message: { type: "string", example: "Users fetched successfully" },
+                    users: {
+                        type: "array",
+                        items: { $ref: "#/components/schemas/User" },
+                    },
+                },
+            },
             ErrorResponse: {
                 type: "object",
                 properties: {
-                    success: { type: "boolean", example: false },
-                    message: { type: "string", example: "Validation failed" },
-                    errors: {
-                        type: "array",
-                        items: { type: "string" },
-                        example: ["Email is required"],
-                    },
+                    message: { type: "string", example: "Unauthorized" },
+                    error: { type: "string", nullable: true, example: "Internal Server Error" },
+                    errorCode: { type: "string", example: "ERR_UNAUTHORIZED" },
+                    timestamp: { type: "string", format: "date-time" },
                 },
             },
         },
@@ -222,6 +364,180 @@ export const swaggerSpec = {
                         content: {
                             "application/json": {
                                 schema: { $ref: "#/components/schemas/AuthStatusResponse" },
+                            },
+                        },
+                    },
+                    "401": {
+                        description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/api/chat/create": {
+            post: {
+                tags: ["Chat"],
+                summary: "Create a direct chat or group chat",
+                security: [{ cookieAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: { $ref: "#/components/schemas/CreateChatRequest" },
+                        },
+                    },
+                },
+                responses: {
+                    "200": {
+                        description: "Chat created or retrieved successfully",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/CreateChatResponse" },
+                            },
+                        },
+                    },
+                    "400": {
+                        description: "Bad request",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "401": {
+                        description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/api/chat/all": {
+            get: {
+                tags: ["Chat"],
+                summary: "Get all chats for current user",
+                security: [{ cookieAuth: [] }],
+                responses: {
+                    "200": {
+                        description: "Users chats fetched successfully",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/UsersChatsResponse" },
+                            },
+                        },
+                    },
+                    "401": {
+                        description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/api/chat/{id}": {
+            get: {
+                tags: ["Chat"],
+                summary: "Get a single chat and its messages",
+                security: [{ cookieAuth: [] }],
+                parameters: [
+                    {
+                        name: "id",
+                        in: "path",
+                        required: true,
+                        schema: { type: "string" },
+                        example: "65dff5fd8d2bfc2212f50f70",
+                    },
+                ],
+                responses: {
+                    "200": {
+                        description: "Chat fetched successfully",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/SingleChatResponse" },
+                            },
+                        },
+                    },
+                    "400": {
+                        description: "Bad request",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "401": {
+                        description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/api/chat/message/send": {
+            post: {
+                tags: ["Message"],
+                summary: "Send a message in a chat (optionally with image/reply)",
+                security: [{ cookieAuth: [] }],
+                requestBody: {
+                    required: true,
+                    content: {
+                        "application/json": {
+                            schema: { $ref: "#/components/schemas/SendMessageRequest" },
+                        },
+                    },
+                },
+                responses: {
+                    "201": {
+                        description: "Message sent successfully",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/SendMessageResponse" },
+                            },
+                        },
+                    },
+                    "400": {
+                        description: "Bad request",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                    "401": {
+                        description: "Unauthorized",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/ErrorResponse" },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "/api/user/all": {
+            get: {
+                tags: ["User"],
+                summary: "List all users except the current user",
+                security: [{ cookieAuth: [] }],
+                responses: {
+                    "200": {
+                        description: "Users fetched successfully",
+                        content: {
+                            "application/json": {
+                                schema: { $ref: "#/components/schemas/UsersResponse" },
                             },
                         },
                     },
