@@ -60,7 +60,7 @@ export const sendMessageService = async (
   //websocket here
 
   return {
-    message: newMessage,
+    userMessage: newMessage,
     chatId,
   };
 };
