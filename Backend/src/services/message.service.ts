@@ -1,6 +1,7 @@
 import ChatModel from "../modles/chat.model";
 import MessageModel from "../modles/message.model";
 import { BadRequestException, NotFoundException } from "../utils/app-error";
+import cloudinary from "../config/cloudinary.config";
 
 export const sendMessageService = async (
   userId: string,
@@ -31,7 +32,10 @@ export const sendMessageService = async (
   }
   let imageUrl;
   if (image) {
-    //upload image to cloudinary
+    const uploadResult = await cloudinary.uploader.upload(image, {
+      folder: "messages",
+    });
+    imageUrl = uploadResult.secure_url;
   }
   const newMessage = await MessageModel.create({
     chatId,
@@ -56,7 +60,7 @@ export const sendMessageService = async (
   //websocket here
 
   return {
-    message: newMessage,
+    userMessage: newMessage,
     chatId,
   };
 };

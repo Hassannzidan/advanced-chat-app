@@ -12,10 +12,8 @@ export const createChatController = asyncHandler(
         }
 
         const userId = req.user._id.toString();
-
         const body = createChatSchema.parse(req.body);
         const chat = await createChatService(userId, body);
-
         return res.status(HTTPSTATUS.OK).json({
             status: "success",
             message: "Chat created or retrieved successfully",
