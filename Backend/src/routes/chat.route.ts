@@ -6,7 +6,7 @@ import { sendMessageController } from "../controllers/message.controller";
 const chatRoutes = Router()
     .use(passportAuthenticateJwt)
     .post("/create", createChatController)
-    .post("/send-message", sendMessageController)
+    .post("/message/send", sendMessageController)
     .get("/all", getUsersChatsController)
     .get("/:id", getSingleChatController)
     
