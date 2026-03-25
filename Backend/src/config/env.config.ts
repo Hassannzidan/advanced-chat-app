@@ -8,4 +8,9 @@ export const envConfig: Record<string, any> = {
     JWT_EXPIRES_IN: getEnv("JWT_EXPIRES_IN", "7d"),
     JWT_COOKIE_EXPIRES_IN: getEnv("JWT_COOKIE_EXPIRES_IN", "30"),
     FRONTEND_ORIGIN: getEnv("FRONTEND_ORIGIN", "http://localhost:5173"),
+
+    //cloudinary
+    CLOUDINARY_CLOUD_NAME: getEnv("CLOUDINARY_CLOUD_NAME"),
+    CLOUDINARY_API_KEY: getEnv("CLOUDINARY_API_KEY"),
+    CLOUDINARY_API_SECRET: getEnv("CLOUDINARY_API_SECRET"),
 } as const;
