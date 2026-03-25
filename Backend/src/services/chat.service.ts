@@ -51,7 +51,7 @@ export const getUsersChatsService = async (userId: string) => {
     const chats = await ChatModel.find({ participants: { $in: [userId] } })
     .populate("participants", "name avatar")
     .populate({ 
-        path:"latestMessage",
+        path:"lastMessage",
         populate:{
             path:"sender",
             select:"name avatar email",
